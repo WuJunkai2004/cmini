@@ -24,11 +24,9 @@
              "/_/    \\_\\_____|            \\_____|_| |_|\\__,_|\\__|"
 
 char* progress_bar[] = {
-    // 使用盲文模拟一个转圈
-    "⠋⠉⠉", "⠉⠉⠙", "⠈⠉⠹", " ⠉⠽", " ⠨⠽", " ⠤⠽", "⠠⠤⠼",
-    "⠤⠤⠴", "⠦⠤⠤", "⠧⠤⠄", "⠯⠤ ", "⠯⠅ ", "⠯⠉ ", "⠏⠉⠁",
+    "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
 };
-const int progress_bar_size = 14;
+const int progress_bar_size = 10;
 int progress_index = 0;
 #define progressing() ({printf("%s\b\b\b", progress_bar[progress_index % progress_bar_size]); progress_index++; fflush(stdout);})
 
@@ -194,21 +192,40 @@ int main(){
         printf(COLOR_BLUE "[You🐷 %s] >>> " COLOR_RESET, get_current_time_str());
         char input[8192];
         fgets(input, sizeof(input), stdin);
+        printf(COLOR_GREEN "[Cmini🤖 %s]<<< " COLOR_RESET, get_current_time_str());
+        fflush(stdout); // 立即输出到终端
         smlock(shared_msg);
         shared_msg->author_id = 1;  // terminal input
         strncpy(shared_msg->content, input, sizeof(shared_msg->content));
         smunlock(shared_msg);
+
+        // 等待服务端回复，并流式输出
+        int last_printed = 0;
         while(true){
-            usleep(150000);  // wait for reply
+            usleep(100000);  // 等待一点时间，避免占用 CPU
             smlock(shared_msg);
             if(shared_msg->author_id == 2){  // net client replied
-                printf(COLOR_GREEN "[Cmini🤖 %s]<<< " COLOR_RESET, get_current_time_str());
-                printf(shared_msg->content);
+                // 清理转圈圈残留
+                printf("\b   \b"); // 回退 + 空格覆盖 + 再回退
+                fflush(stdout);
+                int len = strlen(shared_msg->content);
+                while(last_printed < len){
+                    // 每次打印一小段
+                    putchar(shared_msg->content[last_printed]);
+                    fflush(stdout); // 立即刷新输出
+                    last_printed++;
+                    usleep(30000);  // 打字机效果，可调
+                }
+                putchar('\n'); // 回复结束换行
                 shared_msg->author_id = 0;  // reset
                 smunlock(shared_msg);
                 break;
             } else {
-                progressing();
+                // 正在等待，显示转圈圈
+                printf("\b");             // 回退到进度符号位置
+                printf("%s", progress_bar[progress_index % progress_bar_size]);
+                fflush(stdout);
+                progress_index++;
             }
             smunlock(shared_msg);
         }
