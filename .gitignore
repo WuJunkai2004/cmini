@@ -1,0 +1,8 @@
+build/*
+
+main_*
+
+doc/*
+
+server*
+*.py[cod]
