@@ -13,6 +13,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <time.h>
+
+
 #define logo "          _____              _____ _           _   \n" \
              "    /\\   |_   _|            / ____| |         | |  \n" \
              "   /  \\    | |             | |    | |__   __ _| |_ \n" \
@@ -113,6 +116,7 @@ fork_func(server){
         exit(1);
     }
     char* token = malloc(32);
+    sprintf(token, "Auth: %s", body);
 
     while(true){
         usleep(100000);  // wait for msg
@@ -162,6 +166,15 @@ fork_func(server){
     }
 }
 
+const char* get_current_time_str() {
+    static char time_str[6]; // HH:MM\0
+    time_t t = time(NULL);
+    struct tm tm_info;
+    localtime_r(&t, &tm_info);  // 线程安全版本
+    strftime(time_str, sizeof(time_str), "%H:%M", &tm_info);
+    return time_str;
+}
+
 int main(){
     // register signal handler
     signal(SIGINT, client_quit);
@@ -178,7 +191,7 @@ int main(){
     printf(COLOR_CYAN logo COLOR_RESET "\n\n");
 
     while(true){
-        printf(COLOR_BLUE ">>> " COLOR_RESET);
+        printf(COLOR_BLUE "[You🐷 %s] >>> " COLOR_RESET, get_current_time_str());
         char input[8192];
         fgets(input, sizeof(input), stdin);
         smlock(shared_msg);
@@ -189,7 +202,7 @@ int main(){
             usleep(150000);  // wait for reply
             smlock(shared_msg);
             if(shared_msg->author_id == 2){  // net client replied
-                printf(COLOR_GREEN "<<< " COLOR_RESET);
+                printf(COLOR_GREEN "[Cmini🤖 %s]<<< " COLOR_RESET, get_current_time_str());
                 printf(shared_msg->content);
                 shared_msg->author_id = 0;  // reset
                 smunlock(shared_msg);
