@@ -4,5 +4,5 @@ main_*
 
 doc/*
 
-server*
+server/
 *.py[cod]
