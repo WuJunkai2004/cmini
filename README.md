@@ -1,4 +1,5 @@
 # CMINI
+![logo](./img/logo.png)
 ## Overview
 这是一个模仿gemini cli(Command Line Interface 命令行界面)，用C语言编写的工具。它是基于共享内存、信号和子进程通信机制的简易聊天客户端与服务端框架，模拟了一个命令行下的“聊天机器人客户端”，通过HTTP请求与远程服务器交互。
 
@@ -35,5 +36,7 @@ cd build
 #Linux
 ./app
 ```
-    
+
+## Show
+![p1](./img/p1.png)
 
