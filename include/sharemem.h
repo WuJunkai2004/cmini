@@ -4,7 +4,7 @@
 #include <sys/types.h>
 
 
-#if defined(__linux__) || defined(__GNU__)
+#if defined(__linux__) || defined(__GNU__) || defined (__APPLE__)
 union __semaphore_union {
     int val;                  /* SETVAL 用的值 */
     struct semid_ds *buf;     /* IPC_STAT, IPC_SET 用的缓冲区 */

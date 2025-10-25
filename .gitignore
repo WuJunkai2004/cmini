@@ -6,3 +6,5 @@ doc/*
 
 server/
 *.py[cod]
+
+.cache/
