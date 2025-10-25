@@ -32,6 +32,7 @@ struct msg_t {
 int server_pid;
 struct msg_t* shared_msg;
 struct msg_t recv_msg;
+struct msg_t input;
 
 void server_quit(){
     exit(0);
@@ -54,7 +55,7 @@ char* getBody(char* httpResponse) {
 
 
 fork_func(server){
-    signal(SIGINT, server_quit);  // ignore SIGINT in server process
+    signal(SIGINT, server_quit);  // register quit event in server process
 
     // 初始获取token
     raw_request_t* get_token = raw_init();
@@ -130,6 +131,39 @@ const char* get_current_time_str() {
     return time_str;
 }
 
+void stream_print(const char* str){
+    char prev = '\n';
+    while(*str){
+        if(prev == '\n' && *str == '\n'){
+            str++;      // 避免连续换行
+            continue;
+        }
+        // # 开头的行，粉色显示
+        if(prev == '\n' && *str == '#'){
+            printf(COLOR_PINK);
+            while(*str && *str != '\n'){
+                putchar(*str);
+                str++;
+            }
+            printf(COLOR_RESET "\n");
+            prev = *str;
+            continue;
+        }
+        // - 开头的行，把-号变黄
+        if(prev == '\n' && *str == '-'){
+            printf(COLOR_YELLOW "-" COLOR_RESET);
+            prev = *str;
+            str++;
+            continue;
+        }
+        putchar(prev = *str);
+        fflush(stdout); // 立即刷新输出
+        str++;
+        usleep(30000);  // 打字机效果，可调
+    }
+    putchar('\n'); // 回复结束换行
+}
+
 int main(){
     // register signal handler
     signal(SIGINT, client_quit);
@@ -146,42 +180,26 @@ int main(){
     printf(COLOR_CYAN logo COLOR_RESET "\n\n");
 
     while(true){
-        printf(COLOR_BLUE "[You🐷 %s] >>> " COLOR_RESET, get_current_time_str());
-        char input[8192];
-        fgets(input, sizeof(input), stdin);
-        printf(COLOR_GREEN "[Cmini🤖 %s]<<< " COLOR_RESET, get_current_time_str());
-        fflush(stdout); // 立即输出到终端
+        printf(COLOR_BLUE  "[%s] >>> " COLOR_RESET, get_current_time_str());
+        fgets(input.content, sizeof(input.content), stdin);
+        printf(COLOR_GREEN "[%s] <<< " COLOR_RESET, get_current_time_str());
         smlock(shared_msg);
         shared_msg->author_id = 1;  // terminal input
-        strncpy(shared_msg->content, input, sizeof(shared_msg->content));
+        strncpy(shared_msg->content, input.content, sizeof(shared_msg->content));
         smunlock(shared_msg);
 
-        // 等待服务端回复，并流式输出
-        int last_printed = 0;
         while(true){
             usleep(100000);  // 等待一点时间，避免占用 CPU
             smlock(shared_msg);
-            if(shared_msg->author_id == 2){  // net client replied
-                // 清理转圈圈残留
-                printf("\b   \b"); // 回退 + 空格覆盖 + 再回退
-                fflush(stdout);
-                int len = strlen(shared_msg->content);
-                while(last_printed < len){
-                    // 每次打印一小段
-                    putchar(shared_msg->content[last_printed]);
-                    fflush(stdout); // 立即刷新输出
-                    last_printed++;
-                    usleep(30000);  // 打字机效果，可调
-                }
-                putchar('\n'); // 回复结束换行
-                shared_msg->author_id = 0;  // reset
+            if(shared_msg->author_id != 2){ // not replied yet
                 smunlock(shared_msg);
-                break;
-            } else {
-                // 正在等待，显示转圈圈
                 progressing();
+                continue;
             }
+            stream_print(shared_msg->content);
+            shared_msg->author_id = 0;  // reset
             smunlock(shared_msg);
+            break;
         }
     }
 }
