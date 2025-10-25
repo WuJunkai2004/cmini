@@ -15,18 +15,13 @@
 
 #include <time.h>
 
+#include <logo.h>
 
-#define logo "          _____              _____ _           _   \n" \
-             "    /\\   |_   _|            / ____| |         | |  \n" \
-             "   /  \\    | |             | |    | |__   __ _| |_ \n" \
-             "  / /\\ \\   | |             | |    | '_ \\ / _` | __|\n" \
-             " / ____ \\ _| |_            | |____| | | | (_| | |_ \n" \
-             "/_/    \\_\\_____|            \\_____|_| |_|\\__,_|\\__|"
 
 char* progress_bar[] = {
     "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
 };
-const int progress_bar_size = 10;
+const int progress_bar_size = sizeof(progress_bar) / sizeof(progress_bar[0]);
 int progress_index = 0;
 #define progressing() ({printf("%s\b\b\b", progress_bar[progress_index % progress_bar_size]); progress_index++; fflush(stdout);})
 
