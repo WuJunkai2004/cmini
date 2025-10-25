@@ -29,11 +29,15 @@
     这个文件实现了一个 基于终端（Terminal）的轻量级图形界面框架，包含了键盘输入、光标控制、窗口绘制等功能，让程序在命令行中动态显示内容。
 
 ## Start
-
+from zero build
 ```
-cd build
+sudo apt-get install libreadline-dev
 
-#Linux
+mkdir build
+cd build
+cmake ..
+make
+
 ./app
 ```
 

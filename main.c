@@ -14,6 +14,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <readline/readline.h>
+#include <readline/history.h>
+
 
 char* progress_bar[] = {
     "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
@@ -29,7 +32,6 @@ struct msg_t {
 int server_pid;
 struct msg_t* shared_msg;
 struct msg_t recv_msg;
-struct msg_t input;
 
 
 void server_quit(){
@@ -179,13 +181,27 @@ int main(){
     printf(COLOR_CYAN logo COLOR_RESET "\n\n");
 
     while(true){
-        printf(COLOR_BLUE  "[%s] >>> " COLOR_RESET, get_current_time_str());
-        fgets(input.content, sizeof(input.content), stdin);
+        char prompt_buffer[128];
+        char *line = NULL;
+
+        // use readline for better input experience
+        sprintf(prompt_buffer, COLOR_BLUE "[%s] >>> " COLOR_RESET, get_current_time_str());
+        line = readline(prompt_buffer);
+        if (line == NULL) {
+            printf("\n");
+            client_quit(0);
+        }
+        if (line && *line) {
+            add_history(line);
+        }
         printf(COLOR_GREEN "[%s] <<< " COLOR_RESET, get_current_time_str());
+
+        // copy to shared memory
         smlock(shared_msg);
         shared_msg->author_id = 1;  // terminal input
-        strncpy(shared_msg->content, input.content, sizeof(shared_msg->content));
+        strncpy(shared_msg->content, line, sizeof(shared_msg->content));
         smunlock(shared_msg);
+        free(line);
 
         while(true){
             usleep(100000);  // 等待一点时间，避免占用 CPU
