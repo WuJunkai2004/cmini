@@ -299,8 +299,8 @@ void server_run(server_t* server) {
                 continue;
             }
             // 从客户端接收数据到缓冲区
-            ssize_t bytes_read = recv(clients[i].fd, 
-                                    clients[i].buffer + clients[i].buffer_len, 
+            ssize_t bytes_read = recv(clients[i].fd,
+                                    clients[i].buffer + clients[i].buffer_len,
                                     BUFSIZ - clients[i].buffer_len - 1,  // 预留1字节防止溢出
                                     0);
 

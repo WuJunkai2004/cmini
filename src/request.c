@@ -66,11 +66,11 @@ int request_recv_all(const int sockfd, void* buffer, size_t buffer_size) {
    char* buf = (char*)buffer;
    ssize_t total_received = 0;
    ssize_t received;
-    
+
    // 设置socket为非阻塞模式，用于检测数据接收完毕
    int flags = fcntl(sockfd, F_GETFL, 0);
    fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
-    
+
    // 反复接收数据直到没有更多数据
    while(total_received < buffer_size - 1) {
          received = recv(sockfd, buf + total_received, buffer_size - total_received - 1, 0);
@@ -92,7 +92,7 @@ int request_recv_all(const int sockfd, void* buffer, size_t buffer_size) {
                // 已经有HTTP头部，再等待一点时间看是否有更多数据
                int wait_count = 0;
                while(wait_count < 10) { // 最多等待100ms
-                  received = recv(sockfd, buf + total_received, 
+                  received = recv(sockfd, buf + total_received,
                                  buffer_size - total_received - 1, 0);
                   if(received == 0){
                      break;

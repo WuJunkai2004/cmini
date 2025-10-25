@@ -4,10 +4,10 @@
 #include <terminst.h>
 #include <stdbool.h>
 
-void ui_square(widget_t* widget, int col, int lin, 
+void ui_square(widget_t* widget, int col, int lin,
     int height, int width, color_t color);
 
-void ui_text(widget_t* widget, int col, int lin, 
+void ui_text(widget_t* widget, int col, int lin,
     const char* text, color_t color);
 
 void ui_button(widget_t* widget, int col, int lin, int width,

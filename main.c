@@ -23,7 +23,7 @@ int progress_index = 0;
 #define progressing() ({printf("%s\b", progress_bar[progress_index % progress_bar_size]); progress_index++; fflush(stdout);})
 
 struct msg_t {
-    int author_id;      // 1 is terminal, 2 is net client for posting msg 
+    int author_id;      // 1 is terminal, 2 is net client for posting msg
     char content[8192];
 };
 int server_pid;
@@ -127,7 +127,7 @@ fork_func(server){
         int  length = strlen(shared_msg->content);
         char content_length[128] = {};
         sprintf(content_length, "Content-Length: %d", length);
-        
+
         // 拼接成标准的HTTP请求
         raw_request_t* post_chat = raw_init();
         raw_add_line(post_chat, "POST /chat HTTP/1.1");
