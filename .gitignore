@@ -1,8 +1,9 @@
 build/*
+run.sh
 
 main_*
 
 doc/*
 
-server*
 *.py[cod]
+*.log
