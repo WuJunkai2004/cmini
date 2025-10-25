@@ -23,7 +23,7 @@ char* progress_bar[] = {
 };
 const int progress_bar_size = sizeof(progress_bar) / sizeof(progress_bar[0]);
 int progress_index = 0;
-#define progressing() ({printf("%s\b\b\b", progress_bar[progress_index % progress_bar_size]); progress_index++; fflush(stdout);})
+#define progressing() ({printf("%s\b", progress_bar[progress_index % progress_bar_size]); progress_index++; fflush(stdout);})
 
 struct msg_t {
     int author_id;      // 1 is terminal, 2 is net client for posting msg 
@@ -44,41 +44,6 @@ void client_quit(){
 }
 
 
-static char* message_handler(int op, const char* msg){
-    static char response[1024 * 16] = {0};
-    static int len = 0;
-
-    if(op == 1){  // clear
-        len = 0;
-        return NULL;
-    }
-    if(op == 2){  // add line
-        int msg_len = strlen(msg);
-        if(len + msg_len + 2 >= 1024 * 16){
-            return NULL;  // overflow
-        }
-        strcpy(response + len, msg);
-        len += msg_len;
-        response[len++] = '\r';
-        response[len++] = '\n';
-        response[len] = 0;
-        return NULL;
-    }
-    if(op == 3){  // get
-        return response;
-    }
-    if(op == 4){  // size
-        int* ptr = (int*)msg;
-        *ptr = len;
-        return NULL;
-    }
-}
-#define msg_clear()         message_handler(1, NULL)
-#define msg_add_line(str)   message_handler(2, str)
-#define msg_get()           message_handler(3, NULL)
-#define msg_size(ptr)       message_handler(4, (const char*)ptr)
-
-
 char* getBody(char* httpResponse) {
     char* body = strstr(httpResponse, "\r\n\r\n");
     if (body) {
@@ -92,16 +57,15 @@ fork_func(server){
     signal(SIGINT, server_quit);  // ignore SIGINT in server process
 
     // 初始获取token
-    msg_clear();
-    msg_add_line("GET /login HTTP/1.1");
-    msg_add_line("Host: app/login");
-    msg_add_line("");
-    int fd = request_create("47.121.28.18", 15444);
-    int msg_len = 0;
-    msg_size(&msg_len);
-    request_send(fd, msg_get(), msg_len + 1);
-    request_recv_all(fd, recv_msg.content, 8192);
-    request_close(fd);
+    raw_request_t* get_token = raw_init();
+    raw_add_line(get_token, "GET /login HTTP/1.1");
+    raw_add_line(get_token, "Host: app/login");
+    raw_add_line(get_token, "");
+    int fd_token = request_create("47.121.28.18", 15444);
+    request_send_raw(fd_token, get_token);
+    request_recv_all(fd_token, recv_msg.content, 8192);
+    request_close(fd_token);
+    raw_free(get_token);
     // 解析token
     char* body = getBody(recv_msg.content);
     if(!body){
@@ -124,21 +88,19 @@ fork_func(server){
         sprintf(content_length, "Content-Length: %d", length);
         
         // 拼接成标准的HTTP请求
-        msg_clear();
-        msg_add_line("POST /chat HTTP/1.1");
-        msg_add_line("Host: app/chat");
-        msg_add_line(token);
-        msg_add_line("Content-Type: text/plain");
-        msg_add_line(content_length);
-        msg_add_line("");
-        msg_add_line(shared_msg->content);
+        raw_request_t* post_chat = raw_init();
+        raw_add_line(post_chat, "POST /chat HTTP/1.1");
+        raw_add_line(post_chat, "Host: app/chat");
+        raw_add_line(post_chat, token);
+        raw_add_line(post_chat, "Content-Type: text/plain");
+        raw_add_line(post_chat, content_length);
+        raw_add_line(post_chat, "");
+        raw_add_line(post_chat, shared_msg->content);
         smunlock(shared_msg);
 
         // 发送请求并获取响应
         int fd = request_create("47.121.28.18", 15444);
-        int msg_len = 0;
-        msg_size(&msg_len);
-        request_send(fd, msg_get(), msg_len + 1);
+        request_send_raw(fd, post_chat);
         request_recv_all(fd, recv_msg.content, 8192);
         request_close(fd);
 
@@ -217,10 +179,7 @@ int main(){
                 break;
             } else {
                 // 正在等待，显示转圈圈
-                printf("\b");             // 回退到进度符号位置
-                printf("%s", progress_bar[progress_index % progress_bar_size]);
-                fflush(stdout);
-                progress_index++;
+                progressing();
             }
             smunlock(shared_msg);
         }

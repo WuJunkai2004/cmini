@@ -40,4 +40,25 @@ int request_recv_all(const int sockfd, void* buffer, size_t buffer_len);
  */
 int request_close(int sockfd);
 
+
+/**
+ * @brief raw 支持
+ */
+typedef struct {
+    int len;
+    char content[1024 * 16];
+} raw_request_t;
+void raw_add_line(raw_request_t* r, const char* line);
+
+#define raw_init()              ({raw_request_t* r=malloc(sizeof(raw_request_t)); r->len=0; r->content[0]=0; r;})
+#define raw_free(r)             ({free(r);})
+#define raw_get(r)              ({(r)->content;})
+#define raw_size(r)             ({(r)->len;})
+
+
+/**
+ * @brief HTTP 支持
+ */
+int request_send_raw(const int sockfd, raw_request_t* raw);
+
 #endif//__REQUEST_H__

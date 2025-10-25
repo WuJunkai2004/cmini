@@ -126,3 +126,19 @@ int request_recv_all(const int sockfd, void* buffer, size_t buffer_size) {
 int request_close(int sockfd) {
    return close(sockfd);
 }
+
+void raw_add_line(raw_request_t* r, const char* line) {
+   int line_len = strlen(line);
+   if(r->len + line_len + 2 >= sizeof(r->content)){
+      return;  // overflow
+   }
+   strcpy(r->content + r->len, line);
+   r->len += line_len;
+   r->content[r->len++] = '\r';
+   r->content[r->len++] = '\n';
+   r->content[r->len] = 0;
+}
+
+int request_send_raw(const int sockfd, raw_request_t* raw) {
+   return request_send(sockfd, raw->content, raw->len + 1);
+}
