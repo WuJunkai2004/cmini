@@ -1,21 +1,18 @@
+#include <logo.h>
 #include <request.h>
+#include <sharemem.h>
+
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 
-#include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <subprocess.h>
 
 #include <terminst.h>
-#include <sharemem.h>
-#include <ui.h>
-
-#include <string.h>
-#include <unistd.h>
-
 #include <time.h>
-
-#include <logo.h>
+#include <unistd.h>
 
 
 char* progress_bar[] = {
@@ -34,6 +31,7 @@ struct msg_t* shared_msg;
 struct msg_t recv_msg;
 struct msg_t input;
 
+
 void server_quit(){
     exit(0);
 }
@@ -51,6 +49,48 @@ char* getBody(char* httpResponse) {
         return body + 4;  // 跳过分隔符
     }
     return NULL;  // 未找到正文
+}
+
+const char* get_current_time_str() {
+    static char time_str[6]; // HH:MM\0
+    time_t t = time(NULL);
+    struct tm tm_info;
+    localtime_r(&t, &tm_info);  // 线程安全版本
+    strftime(time_str, sizeof(time_str), "%H:%M", &tm_info);
+    return time_str;
+}
+
+void stream_print(const char* str){
+    char prev = '\n';
+    while(*str){
+        if(prev == '\n' && *str == '\n'){
+            str++;      // 避免连续换行
+            continue;
+        }
+        // # 开头的行，粉色显示
+        if(prev == '\n' && *str == '#'){
+            printf(COLOR_PINK);
+            while(*str && *str != '\n'){
+                putchar(*str);
+                str++;
+            }
+            printf(COLOR_RESET "\n");
+            prev = *str;
+            continue;
+        }
+        // - 开头的行，把-号变黄
+        if(prev == '\n' && *str == '-'){
+            printf(COLOR_YELLOW "-" COLOR_RESET);
+            prev = *str;
+            str++;
+            continue;
+        }
+        putchar(prev = *str);
+        fflush(stdout); // 立即刷新输出
+        str++;
+        usleep(30000);  // 打字机效果，可调
+    }
+    putchar('\n'); // 回复结束换行
 }
 
 
@@ -122,47 +162,6 @@ fork_func(server){
     }
 }
 
-const char* get_current_time_str() {
-    static char time_str[6]; // HH:MM\0
-    time_t t = time(NULL);
-    struct tm tm_info;
-    localtime_r(&t, &tm_info);  // 线程安全版本
-    strftime(time_str, sizeof(time_str), "%H:%M", &tm_info);
-    return time_str;
-}
-
-void stream_print(const char* str){
-    char prev = '\n';
-    while(*str){
-        if(prev == '\n' && *str == '\n'){
-            str++;      // 避免连续换行
-            continue;
-        }
-        // # 开头的行，粉色显示
-        if(prev == '\n' && *str == '#'){
-            printf(COLOR_PINK);
-            while(*str && *str != '\n'){
-                putchar(*str);
-                str++;
-            }
-            printf(COLOR_RESET "\n");
-            prev = *str;
-            continue;
-        }
-        // - 开头的行，把-号变黄
-        if(prev == '\n' && *str == '-'){
-            printf(COLOR_YELLOW "-" COLOR_RESET);
-            prev = *str;
-            str++;
-            continue;
-        }
-        putchar(prev = *str);
-        fflush(stdout); // 立即刷新输出
-        str++;
-        usleep(30000);  // 打字机效果，可调
-    }
-    putchar('\n'); // 回复结束换行
-}
 
 int main(){
     // register signal handler
