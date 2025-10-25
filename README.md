@@ -38,5 +38,5 @@ cd build
 ```
 
 ## Show
-![p1](./img/p1.png)
+![show](./img/show.gif?raw=true)
 
