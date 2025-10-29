@@ -48,11 +48,17 @@ class handler(vercel.API):
                     return vercel.ErrorStatu(self, 500)
 
             if mod:
+                mod_handler = getattr(mod, 'handler', None)
+                if mod_handler is None:
+                    return vercel.ErrorStatu(self, 503, 'Failed to load handler from module')
+                vercel_func = getattr(mod_handler, 'vercel', None)
+                if vercel_func is None:
+                    return vercel.ErrorStatu(self, 503, 'Handler has no vercel method')
                 try:
-                    mod.handler.vercel(self, url, data, headers)
-                except AttributeError as e:
+                    vercel_func(self, url, data, headers)
+                except Exception as e:
                     print(e)
-                    vercel.ErrorStatu(self, 503)
+                    return vercel.ErrorStatu(self, 503)
             return
 
         vercel.ErrorStatu(self, 404)
