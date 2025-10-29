@@ -91,7 +91,9 @@ void stream_print(const char* str){
         str++;
         usleep(30000);  // 打字机效果，可调
     }
-    putchar('\n'); // 回复结束换行
+    if (prev != '\n') {
+        putchar('\n'); // 回复结束换行
+    }
 }
 
 
