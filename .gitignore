@@ -1,10 +1,11 @@
 build/*
+run.sh
 
 main_*
 
 doc/*
 
 server/
-*.py[cod]
-
 .cache/
+*.log
+*.py[cod]

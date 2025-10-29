@@ -14,8 +14,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <readline/readline.h>
-#include <readline/history.h>
+#include "input.c"
 
 
 char* progress_bar[] = {
@@ -165,9 +164,30 @@ fork_func(server){
 }
 
 
+bool deal_command(const char* line) {
+    switch (match_command(line)) {
+        case 0: // /help
+            printf(COLOR_YELLOW "Available commands:\n" COLOR_RESET);
+            for(int i = 0; commands[i]; i++){
+                printf(COLOR_CYAN "  %s\n" COLOR_RESET, commands[i]);
+            }
+            return true;
+        case 1: // /quit
+            client_quit();
+            return true; // never reach here
+        default:
+            return false; // not a command
+    }
+}
+
+
 int main(){
-    // register signal handler
-    signal(SIGINT, client_quit);
+    // register Ctrl-C signal handler
+    signal(SIGINT,  client_quit);
+    // register Ctrl-D signal handler
+    signal(SIGQUIT, client_quit);
+
+    setup_input();
 
     // make share memory
     shared_msg = smalloc(10230, sizeof(struct msg_t));
@@ -178,7 +198,11 @@ int main(){
     server_pid = pfork(server);
 
     // print logo
-    printf(COLOR_CYAN logo COLOR_RESET "\n\n");
+    printf(COLOR_CYAN logo COLOR_RESET "\n");
+    printf(COLOR_GREEN "[%s] <<< "
+        COLOR_GRAY "Welcome! use " COLOR_YELLOW "/help" COLOR_GRAY " to get more help.\n" COLOR_RESET,
+        get_current_time_str()
+    );
 
     while(true){
         char prompt_buffer[128];
@@ -187,10 +211,10 @@ int main(){
         // use readline for better input experience
         sprintf(prompt_buffer, COLOR_BLUE "[%s] >>> " COLOR_RESET, get_current_time_str());
         line = readline(prompt_buffer);
-        if (line == NULL) {
-            printf("\n");
-            client_quit(0);
+        if (deal_command(line)) {
+            continue;
         }
+
         if (line && *line) {
             add_history(line);
         }

@@ -10,6 +10,7 @@ typedef const char* color_t;
 #define COLOR_MAGENTA "\033[35m"
 #define COLOR_CYAN    "\033[36m"
 #define COLOR_WHITE   "\033[37m"
+#define COLOR_GRAY    "\033[90m"
 #define COLOR_RESET   "\033[0m"
 #define COLOR_ORANGE  "\033[38;5;208m"  // 橙色
 #define COLOR_PINK    "\033[38;5;205m"  // 粉色

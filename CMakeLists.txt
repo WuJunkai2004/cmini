@@ -21,10 +21,8 @@ file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/logo.txt LOGO_TXT_CONTENT)
 # escape special characters for C string literal
 string(REPLACE "\\" "\\\\" LOGO_TXT_CONTENT "${LOGO_TXT_CONTENT}")
 string(REPLACE "\"" "\\\"" LOGO_TXT_CONTENT "${LOGO_TXT_CONTENT}")
-string(REPLACE "\n" "\\n\"\\\n\"" LOGO_TXT_CONTENT "${LOGO_TXT_CONTENT}") # 为了美观，将换行符转为 C 的多行字符串
-# finally, wrap with double quotes
+string(REPLACE "\n" "\\n\"\\\n\"" LOGO_TXT_CONTENT "${LOGO_TXT_CONTENT}")
 set(LOGO_CONTENT "${LOGO_TXT_CONTENT}")
-# and set the variable for configure_file
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/logo.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/logo.h
@@ -37,7 +35,7 @@ add_compile_definitions(END_LINE=10)
 file(GLOB SOURCES "src/*.c")
 
 #add executable with sources and main.c file
-add_executable(app ${SOURCES} ${TETRIS} main.c)
+add_executable(app ${SOURCES} main.c)
 
 # add include directories
 target_include_directories(app PRIVATE
