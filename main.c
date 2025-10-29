@@ -172,7 +172,12 @@ bool deal_command(const char* line) {
                 printf(COLOR_CYAN "  %s\n" COLOR_RESET, commands[i]);
             }
             return true;
-        case 1: // /quit
+        case 1: // /about
+            printf(COLOR_YELLOW "Cmini, A Chat Mini CLI Program.\nDeveloped by "
+                   COLOR_WHITE "Wu Junkai" COLOR_YELLOW " and "
+                   COLOR_WHITE "Liu Huasheng" COLOR_RESET ".\n");
+            return true;
+        case 2: // /quit
             client_quit();
             return true; // never reach here
         default:
