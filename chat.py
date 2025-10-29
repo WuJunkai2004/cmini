@@ -2,6 +2,7 @@ import os
 import requests
 
 import server.vercel as vercel
+from datetime import datetime
 
 API_KEY = os.getenv("GEMINI_API_KEY", "")
 if not API_KEY:
@@ -11,8 +12,62 @@ BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 MODEL_NAME = "models/gemini-flash-latest"
 URL = f"{BASE_URL}/{MODEL_NAME}:generateContent"
 
+
+prompt = """# CORE DIRECTIVE
+You are a highly intelligent AI assistant designed to run in a user's command-line interface (CLI). Your name is "Gemini-CLI".
+
+# CONTEXT
+- You are interacting with the user via a terminal.
+- The user is likely a developer or a technical person.
+- Current server time information is provided below. Use it when the user asks about time.
+
+# RULES OF INTERACTION
+- Be concise and to the point. Get straight to the answer.
+- Provide practical, actionable information.
+- For programming questions, provide code that can be directly used.
+- Do not use verbose explanations unless the user asks for more details.
+- Your knowledge cutoff is around early 2023. For events after that, state that you might not have the latest information.
+- CRITICAL: You MUST respond to the user in Simplified Chinese.
+
+# FORMATTING REQUIREMENTS
+- Use '#' for titles only. Start your response directly without a title if it's not needed.
+- DO NOT use any other Markdown formatting like **bold**, *italics*, or `backticks`.
+- Present code directly without enclosing it in Markdown code blocks.
+- For lists, use a simple hyphen (-) or numbers (1., 2.).
+
+# EXAMPLES
+---
+GOOD EXAMPLE:
+User: 写一个python http server
+Assistant:
+# Python HTTP Server
+python -m http.server 8000
+
+---
+BAD EXAMPLE:
+User: 写一个python http server
+Assistant:
+好的，当然可以！您可以使用 Python 内置的 `http.server` 模块来快速启动一个简单的 HTTP 服务器。这是一个非常方便的功能，适合本地开发和文件共享。
+
+您只需要在终端中运行以下命令：
+```python
+python -m http.server 8000
+这将在 8000 端口上启动一个服务器。希望这对您有帮助！"""
+
+
+def get_current_time():
+    now = datetime.now()
+    return now.strftime("%Y-%m-%d %H:%M:%S")
+
+def get_finally_prompt(user_prompt):
+    return f'''[System Context]
+Current Datetime: {get_current_time()}
+Use the information above to answer the following user question.
+[User Question]
+{user_prompt}'''
+
 # username:
-#   - {role: "user"/"assistant"/"system", content: "text"}
+#   - {role: "user"/"model", content: "text"}
 history = {}
 
 @vercel.register
@@ -24,27 +79,18 @@ def chat(response, headers, data):
     prompt = data['raw']
     user = headers['Auth']
     if user not in history.keys():
-        history[user] = [{"role": "system", "content": "你是一个智能助手，正在通过终端与用户对话。请遵循以下要求：\n\n# 回答风格\n- 回答要简洁明了，直接切入重点\n- 使用中文回答，语言自然流畅\n- 避免冗长的解释，优先提供实用信息\n\n# 格式要求\n- 只能使用#开头作为标题（会显示为粗体）\n- 不要使用其他markdown格式（如**粗体**、*斜体*、```代码块```等）\n- 代码直接展示，不要用代码块包围\n- 列表使用简单的-或数字开头\n\n# 内容要求\n- 针对技术问题提供准确的解决方案\n- 对于编程相关问题，给出可直接使用的代码\n- 回答控制在合理长度内，避免刷屏"}]
+        history[user] = []
     # 添加当前用户输入到历史记录
     history[user].append({"role": "user", "content": prompt})
 
     # 构建完整的对话历史
     contents = []
-    system_prompt = None
 
     for msg in history[user]:
-        if msg["role"] == "system":
-            system_prompt = msg["content"]
-        elif msg["role"] == "user":
-            contents.append({
-                "role": "user",
-                "parts": [{"text": msg["content"]}]
-            })
-        elif msg["role"] == "assistant":
-            contents.append({
-                "role": "model",
-                "parts": [{"text": msg["content"]}]
-            })
+        contents.append({
+            "role": msg["role"],
+            "parts": [{"text": msg["content"]}]
+        })
 
     headers = {
         "Content-Type": "application/json",
@@ -53,8 +99,8 @@ def chat(response, headers, data):
     payload = {
         "contents": contents,
         "systemInstruction": {
-            "parts": [{"text": system_prompt}]
-        } if system_prompt else None
+            "parts": [{"text": prompt}]
+        }
     }
     response.send_code(200)
     response.send_header("Content-Type", "text/plain; charset=utf-8")
@@ -65,7 +111,7 @@ def chat(response, headers, data):
         if "candidates" in result and len(result["candidates"]) > 0:
             content = result["candidates"][0]["content"]["parts"][0]["text"]
             # 将AI回复添加到历史记录
-            history[user].append({"role": "assistant", "content": content})
+            history[user].append({"role": "model", "content": content})
             # 发送回复
             response.send_text(content)
             return
