@@ -13,7 +13,7 @@ MODEL_NAME = "models/gemini-flash-latest"
 URL = f"{BASE_URL}/{MODEL_NAME}:generateContent"
 
 
-prompt = """# CORE DIRECTIVE
+system_prompt = """# CORE DIRECTIVE
 You are a highly intelligent AI assistant designed to run in a user's command-line interface (CLI). Your name is "Gemini-CLI".
 
 # CONTEXT
@@ -61,8 +61,9 @@ def get_current_time():
 
 def get_finally_prompt(user_prompt):
     return f'''[System Context]
-Current Datetime: {get_current_time()}
+> Current Datetime: {get_current_time()}
 Use the information above to answer the following user question.
+It is very important to remember this context and use it when necessary.
 [User Question]
 {user_prompt}'''
 
@@ -99,7 +100,7 @@ def chat(response, headers, data):
     payload = {
         "contents": contents,
         "systemInstruction": {
-            "parts": [{"text": prompt}]
+            "parts": [{"text": system_prompt}]
         }
     }
     response.send_code(200)
