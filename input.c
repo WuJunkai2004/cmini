@@ -7,6 +7,7 @@ char* commands[] = {
     "/help",
     "/about",
     "/quit",
+    "/model",
     NULL
 };
 

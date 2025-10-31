@@ -15,7 +15,7 @@
 #include <unistd.h>
 
 #include "input.c"
-
+#include "model.c"
 
 char* progress_bar[] = {
     "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
@@ -182,6 +182,9 @@ bool deal_command(const char* line) {
         case 2: // /quit
             client_quit();
             return true; // never reach here
+        case 3: // /model
+            model_selector();
+            return true;
         default:
             return false; // not a command
     }
