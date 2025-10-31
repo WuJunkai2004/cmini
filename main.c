@@ -119,6 +119,18 @@ fork_func(server){
     char* token = malloc(32);
     sprintf(token, "Auth: %s", body);
 
+    // 获取当前使用的模型
+    char current_model[64];
+    if (load_current_model(current_model, sizeof(current_model)) == 0) {
+        printf(COLOR_YELLOW "No model selected yet.\n" COLOR_RESET);
+    }
+    // 获取api key
+    char key[512];
+    if (load_api_key(current_model, key, 512) == 0) {
+        printf(COLOR_RED "Error: No API key found for model '%s'.\n" COLOR_RESET, current_model);
+        exit(1);
+    }
+
     while(true){
         usleep(100000);  // wait for msg
         smlock(shared_msg);
@@ -136,6 +148,12 @@ fork_func(server){
         raw_add_line(post_chat, "POST /chat HTTP/1.1");
         raw_add_line(post_chat, "Host: app/chat");
         raw_add_line(post_chat, token);
+
+        // 这里把API Key当作自定义头发送
+        char api_key[256];
+        sprintf(api_key, "X-API-Key: %s", key);
+        raw_add_line(post_chat, api_key);
+
         raw_add_line(post_chat, "Content-Type: text/plain");
         raw_add_line(post_chat, content_length);
         raw_add_line(post_chat, "");
