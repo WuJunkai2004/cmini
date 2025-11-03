@@ -7,3 +7,5 @@ doc/*
 
 *.py[cod]
 *.log
+
+secret.toml

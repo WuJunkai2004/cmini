@@ -1,12 +1,9 @@
-import os
+import tomli
 import requests
 
 import server.vercel as vercel
 from datetime import datetime
 
-API_KEY = os.getenv("GEMINI_API_KEY", "")
-if not API_KEY:
-    raise ValueError("GEMINI_API_KEY is not set in environment variables")
 
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 MODEL_NAME = "models/gemini-flash-latest"
