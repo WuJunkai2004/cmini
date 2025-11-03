@@ -2,7 +2,11 @@ try:
     from imp import load_source
 except ImportError:
     from importlib.util import spec_from_file_location, module_from_spec
-    load_source = lambda name, path: module_from_spec(spec_from_file_location(name, path))
+    load_source = lambda name, path: (
+        (s := spec_from_file_location(name, path)) and
+        (m := module_from_spec(s)) and
+        (s.loader.exec_module(m) is None and m)
+    )
 
 import os
 import server.vercel as vercel
