@@ -95,16 +95,3 @@ int match_command(const char* line){
     }
     return -1;
 }
-
-// if need to continue the program, return true; else false
-bool command_input(const char* line, void (*quit_func)(void)) {
-    if (strncmp(line, "/quit", 5) == 0) {
-        quit_func();
-        return true;
-    }
-    if (strncmp(line, "/help", 5) == 0) {
-        printf(COLOR_YELLOW "Commands: /quit, /help\n" COLOR_RESET);
-        return true;
-    }
-    return false;
-}

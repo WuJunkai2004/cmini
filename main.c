@@ -31,6 +31,7 @@ struct msg_t {
 int server_pid;
 struct msg_t* shared_msg;
 struct msg_t recv_msg;
+char *model_name = NULL;
 
 
 void server_quit(){
@@ -105,7 +106,7 @@ fork_func(server){
     raw_add_line(get_token, "GET /login HTTP/1.1");
     raw_add_line(get_token, "Host: app/login");
     raw_add_line(get_token, "");
-    int fd_token = request_create("47.121.28.18", 15444);
+    int fd_token = request_create("127.0.0.1", 15444);
     request_send_raw(fd_token, get_token);
     request_recv_all(fd_token, recv_msg.content, 8192);
     request_close(fd_token);
@@ -116,21 +117,10 @@ fork_func(server){
         body = "Error: Unable to retrieve token from server.\n";
         exit(1);
     }
-    char* token = malloc(32);
+    char* token = malloc(3200);
     sprintf(token, "Auth: %s", body);
 
     while(true){
-        // 获取当前使用的模型
-        char current_model[64];
-        if (load_current_model(current_model, sizeof(current_model)) == 0) {
-            printf(COLOR_YELLOW "No model selected yet.\n" COLOR_RESET);
-        }
-        // 获取api key
-        char key[512];
-        if (load_api_key(current_model, key, 512) == 0) {
-            printf(COLOR_RED "Error: No API key found for model '%s'.\n" COLOR_RESET, current_model);
-            exit(1);
-        }
         usleep(100000);  // wait for msg
         smlock(shared_msg);
         if(shared_msg->author_id != 1){  // new msg from terminal
@@ -147,24 +137,17 @@ fork_func(server){
         raw_add_line(post_chat, "POST /chat HTTP/1.1");
         raw_add_line(post_chat, "Host: app/chat");
         raw_add_line(post_chat, token);
-
-        // 这里把API Key当作自定义头发送
-        char api_key[256];
-        sprintf(api_key, "X-API-Key: %s", key);
-        raw_add_line(post_chat, api_key);
-        // model name
-        char model_name[256];
-        sprintf(model_name, "Model: %s", current_model);
-        raw_add_line(post_chat, model_name);
-
         raw_add_line(post_chat, "Content-Type: text/plain");
+        smlock(model_name);
+        raw_add_line(post_chat, model_name);
+        smunlock(model_name);
         raw_add_line(post_chat, content_length);
         raw_add_line(post_chat, "");
         raw_add_line(post_chat, shared_msg->content);
         smunlock(shared_msg);
 
         // 发送请求并获取响应
-        int fd = request_create("47.121.28.18", 15444);
+        int fd = request_create("127.0.0.1", 15444);
         request_send_raw(fd, post_chat);
         request_recv_all(fd, recv_msg.content, 8192);
         request_close(fd);
@@ -204,7 +187,10 @@ bool deal_command(const char* line) {
             client_quit();
             return true; // never reach here
         case 3: // /model
-            model_selector();
+            int selected = model_selector();
+            smlock(model_name);
+            sprintf(model_name, "Model: %s", models[selected]);
+            smunlock(model_name);
             return true;
         default:
             return false; // not a command
@@ -225,6 +211,12 @@ int main(){
     smlock(shared_msg);
     shared_msg->author_id = 0;  // no msg
     smunlock(shared_msg);
+
+    // model name
+    model_name = smalloc(10231, 128);
+    smlock(model_name);
+    sprintf(model_name, "Model: gemini");
+    smunlock(model_name);
 
     server_pid = pfork(server);
 
