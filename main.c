@@ -188,9 +188,14 @@ bool deal_command(const char* line) {
             return true; // never reach here
         case 3: // /model
             int selected = model_selector();
+            if(selected == model_amount){
+                return true;
+            }
             smlock(model_name);
             sprintf(model_name, "Model: %s", models[selected]);
             smunlock(model_name);
+            printf(COLOR_YELLOW "Model switched to " COLOR_CYAN "%s" COLOR_RESET ".\n",
+                models[selected]);
             return true;
         default:
             return false; // not a command

@@ -2,7 +2,6 @@
 #include <terminst.h>
 #include <unistd.h>
 #include <string.h>
-#include <ui.h>
 
 #define MAX_LINE 512
 
@@ -12,37 +11,42 @@ char* models[] = {
     "qwen",
     NULL
 };
+const int model_amount = sizeof(models) / sizeof(models[0]) - 1; // exclude NULL
 
 int model_selector() {
     int selected = 0;
-    int total = 0;
     int in_menu = 1;
-    while (models[total]) total++;
     terminst_init();
     int rows, cols;
     terminst_size(&rows, &cols);
-    if(rows < 13){
+    if(rows < model_amount + 3){
         terminst_throw("Terminal too small! Please resize to at least 10 rows.");
     }
-    widget_t* widget = widget_create(0, 0, 18, 7 + total * 3);
-    widget_border(widget);
-    ui_text(widget, 0, 0, " Model Selector", COLOR_YELLOW);
     while(in_menu){
-        for(int i = 0; i < total; i++){
-            ui_button(widget, 1, 2 + i * 3, 14, models[i],
-                      COLOR_GREEN, i == selected, 1);
+        terminst_clear();
+        printf(COLOR_GRAY "Use Up/Down or W/S to navigate, Enter/Space to select.\n" COLOR_RESET);
+        printf(COLOR_YELLOW "Available models:\n" COLOR_RESET);
+        for(int i = 0; i < model_amount; i++){
+            if(i == selected){
+                printf(COLOR_GREEN "> %s\n" COLOR_RESET, models[i]);
+            } else {
+                printf("  %s\n", models[i]);
+            }
         }
-        ui_button(widget, 1, 2 + total * 3, 14, "exit",
-                  COLOR_CYAN, selected == total, 1);
+        if(selected == model_amount){
+            printf(COLOR_RED "> exit\n" COLOR_RESET);
+        } else {
+            printf("  exit\n");
+        }
         terminst_flush();
         switch(terminst_wait_key()){
             case KEY_UP:
             case 'W':
-                selected = (selected != 0) ? selected - 1 : total;
+                selected = (selected != 0) ? selected - 1 : model_amount;
                 break;
             case KEY_DOWN:
             case 'S':
-                selected = (selected != total) ? selected + 1 : 0;
+                selected = (selected != model_amount) ? selected + 1 : 0;
                 break;
             case KEY_ENTER:
             case KEY_SPACE:
@@ -53,6 +57,3 @@ int model_selector() {
     terminst_quit();
     return selected;
 }
-
-
-
