@@ -296,6 +296,8 @@ class SEND(COOKIE):
         f.close()
 
     def send_json(self, data: dict | list):
+        if not hasattr(self, '_headers_buffer'):
+            self._headers_buffer = []
         for header_str in self._headers_buffer:
             if header_str.startswith(b'Content-Type:'):
                 self._headers_buffer.remove(header_str)
