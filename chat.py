@@ -1,4 +1,5 @@
 import tomli
+import os
 import requests
 
 import server.vercel as vercel
@@ -56,9 +57,10 @@ def get_current_time():
     now = datetime.now()
     return now.strftime("%Y-%m-%d %H:%M:%S")
 
-def get_finally_prompt(user_prompt):
+def get_finally_prompt(user_prompt, model_name):
     return f'''[System Context]
 > Current Datetime: {get_current_time()}
+> Your model is {model_name}, but parameters are from gemini-flash-latest. But you must introduce yourself as {model_name}.
 Use the information above to answer the following user question.
 It is very important to remember this context and use it when necessary.
 [User Question]
@@ -70,7 +72,7 @@ history = {}
 
 @vercel.register
 def chat(response, headers, data):
-    if('raw' not in data.keys() or 'Auth' not in headers.keys()):
+    if('raw' not in data.keys() or 'Auth' not in headers.keys() or 'Model' not in headers.keys()):
         response.send_code(400)
         response.send_json({"error": "Invalid request format"})
         return
@@ -79,7 +81,7 @@ def chat(response, headers, data):
     if user not in history.keys():
         history[user] = []
     # 添加当前用户输入到历史记录
-    history[user].append({"role": "user", "content": prompt})
+    history[user].append({"role": "user", "content": get_finally_prompt(prompt, headers['Model'])})
 
     # 构建完整的对话历史
     contents = []

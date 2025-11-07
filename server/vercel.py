@@ -394,6 +394,7 @@ def start(HandlerClass = API,
     ServerClass.address_family = info[0]
     HandlerClass.protocol_version = protocol
     with ServerClass(info[4], HandlerClass) as httpd:
+        verlog.name('start')(f"Serving HTTP on {info[4][0]} port {port}")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
