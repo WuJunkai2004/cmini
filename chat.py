@@ -1,6 +1,6 @@
 import tomli
 import os
-import requests
+import models
 
 import server.vercel as vercel
 from datetime import datetime
@@ -57,18 +57,25 @@ def get_current_time():
     now = datetime.now()
     return now.strftime("%Y-%m-%d %H:%M:%S")
 
-def get_finally_prompt(user_prompt, model_name):
+
+def get_finally_prompt(user_prompt):
     return f'''[System Context]
 > Current Datetime: {get_current_time()}
-> Your model is {model_name}, but parameters are from gemini-flash-latest. But you must introduce yourself as {model_name}.
 Use the information above to answer the following user question.
 It is very important to remember this context and use it when necessary.
 [User Question]
 {user_prompt}'''
 
+
 # username:
 #   - {role: "user"/"model", content: "text"}
 history = {}
+
+
+# secret.toml
+with open(os.path.join(os.path.dirname(__file__), "secret.toml"), "rb") as f:
+    secret_config = tomli.load(f)
+
 
 @vercel.register
 def chat(response, headers, data):
@@ -76,51 +83,39 @@ def chat(response, headers, data):
         response.send_code(400)
         response.send_json({"error": "Invalid request format"})
         return
+
+    if headers['Model'] not in secret_config['models']:
+        response.send_code(400)
+        response.send_json({"error": "Model not supported"})
+        return
+
+    API_KEY = secret_config[headers['Model']]['api_key']
+
     prompt = data['raw']
     user = headers['Auth']
     if user not in history.keys():
         history[user] = []
-    # 添加当前用户输入到历史记录
-    history[user].append({"role": "user", "content": get_finally_prompt(prompt, headers['Model'])})
 
-    # 构建完整的对话历史
-    contents = []
+    adapter = models.get_model_adapter(headers['Model'])
+    content = adapter.send_request(
+        system_prompt,
+        history[user],
+        get_finally_prompt(prompt),
+        API_KEY
+    )
 
-    for msg in history[user]:
-        contents.append({
-            "role": msg["role"],
-            "parts": [{"text": msg["content"]}]
-        })
+    if content is None:
+        response.send_code(500)
+        response.send_json({"error": "Failed to generate content"})
+        return
+    
+    while content.startswith("\n"):
+        content = content[1:]
+    
+    # 添加当前用户输入输出到历史记录
+    history[user].append({"role": "user", "content": prompt})
+    history[user].append({"role": "model", "content": content})
 
-    headers = {
-        "Content-Type": "application/json",
-        "X-goog-api-key": API_KEY
-    }
-    payload = {
-        "contents": contents,
-        "systemInstruction": {
-            "parts": [{"text": system_prompt}]
-        }
-    }
     response.send_code(200)
     response.send_header("Content-Type", "text/plain; charset=utf-8")
-    try:
-        res = requests.post(URL, headers=headers, json=payload)
-        res.raise_for_status()
-        result = res.json()
-        if "candidates" in result and len(result["candidates"]) > 0:
-            content = result["candidates"][0]["content"]["parts"][0]["text"]
-            # 将AI回复添加到历史记录
-            history[user].append({"role": "model", "content": content})
-            # 发送回复
-            response.send_text(content)
-            return
-        else:
-            # 错误，未收到有效回复，删去
-            if history[user][-1]["role"] == "user":
-                del history[user][-1]
-            response.send_text("No valid response from AI")
-            return
-    except Exception as e:
-        response.send_text(f"Error: {str(e)}")
-        return
+    response.send_text(content)

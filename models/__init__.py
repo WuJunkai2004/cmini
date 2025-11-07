@@ -2,7 +2,7 @@ from . import gemini, qwen
 
 MODEL_REGISTRY = {
     "gemini": gemini,
-    "Qwen": qwen,
+    "qwen": qwen,
 }
 
 def get_model_adapter(model_name):

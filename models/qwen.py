@@ -1,34 +1,30 @@
 import requests
-from openai import OpenAI
-import dashscope
-from dashscope import Generation
-MODEL_NAME = "qwen3-max"
 
 
+API_URL = "https://api.gitcode.com/api/v5/chat/completions"
+MODEL_NAME = "hf_mirrors/Qwen/Qwen3-235B-A22B-Instruct-2507"
 
-def send_request(prompt_list, system_prompt, api_key):
-    print("qwen")
-    # 转换为 Qwen 接口格式
-    messages = []
-    if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
-    for msg in prompt_list:
-        messages.append({"role": msg["role"], "content": msg["parts"][0]["text"]})
+def send_request(system_prompt, history, prompt, api_key):
+    contents = []
+    contents.append({"role": "system", "content": system_prompt})
+    for msg in history:
+        contents.append({
+            "role": msg["role"],
+            "content": msg["content"]
+        })
+    contents.append({"role": "user", "content": prompt})
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+    }
+    payload = {
+        "messages": contents,
+        "model": MODEL_NAME,
+        "stream": False
+    }
 
-
-    client = OpenAI( 
-        api_key = api_key,        
-        base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1",    
-    )
-
-    response = client.chat.completions.create(
-        model = MODEL_NAME,   
-        messages = messages,
-    )
-    result = (response.choices[0].message.content)
-    print(f"result:{result}")
-
-    try:
-        return result
-    except KeyError:
-        return None
+    res = requests.post(API_URL, headers=headers, json=payload)
+    res.raise_for_status()
+    result = res.json()
+    if "choices" in result and len(result["choices"]) > 0:
+        return result["choices"][0]["delta"]["content"]
+    return None
